@@ -27,7 +27,8 @@ setup(
     license='GPL-3.0',
     packages=setuptools.find_packages(),
     install_requires=['mpi4py>=2.0',
-                      'numpy',                     
+                      'numpy',  
+                      'tqdm',                   
                       ],
 
     classifiers=[

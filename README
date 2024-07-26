@@ -1,1 +1,71 @@
 atomic potential tester by Andrew Smith
+
+Pre-requisites (with non-trivial install)
+    lammps >= 2034.8.2 -- with ACE support
+    phonopy
+    phono3py
+Can be installed automatically with pip:
+    ase
+    numpy
+    matplotlib
+    seekpath
+    [...]
+
+
+Installation:
+#############
+
+
+Method A: quick install:
+
+step 1. activate your virtual enviroment
+step 2. python3 -m pip install git+https://andrew551/AtomicPotentialTester
+
+Method B: install in development mode:
+
+
+git clone git+https://andrew551/AtomicPotentialTester.git
+cd AtomicPotentialTester
+python3 -m pip install --editable .
+
+[the --editable flag means that if you can edit the sourcecode of the library without
+ rebuilding the library afterwards. If this doesn't work, try without the --editable flag,
+ but then you need to rerun the command after every change you make]
+
+Example usage script:
+
+
+workdir
+|
+|-----samplescript.py
+|-----POSCAR
+
+python3 samplescript.py
+
+Phonos, specificheat, thermal conductivity and density are now computed and saved
+in the working directory.
+
+#####################
+
+import potential_tester
+
+config = {
+    'Q_MESH':[11, 11, 11],
+    'FC2_SC':[6, 6, 5],
+    'FC3_SC':[3, 3 ,2],
+}
+
+atp = potential_tester.ATP(potential_path='/mnt/scratch2/q13camb_scratch/adps2/summer_project/ace_fitting_julia/models/SiO2-3-12REF_REP0.01', **config)
+
+load_force_constants = False
+if load_force_constants:
+    atp.load_ph3()
+else:
+    atp.run_relax()
+    atp.compute_force_constants()
+atp.compute_phonons()
+atp.compute_specific_heat()
+atp.compute_tc(80, 640, 80) # compute thermal conductivity from 80K to 640K in steps of 80K
+
+######
+
