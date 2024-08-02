@@ -95,7 +95,7 @@ class ATP:
     def compute_tc(self, T_min=80, T_max=640, T_step=80):
         tc_calc.calc_tc_hdf5_yaml(T_min,T_max,T_step,initial_string="phono3py_disp.yaml",output_file="tc.out",Q_MESH=[9,9,9],METHOD_thm=True,sigma=0.012,sigma_cutoff=3,path_phono3py="/mnt/userapps/q13camb_apps/python/packages/phono3py-OMP")
         # plot tc
-        plot_tc_data(file_in=Path(self.config['workdir']) / 'kappa-m999.hdf5')
+        self.plot_tc_data(file_in=Path(self.config['workdir']) / 'kappa-m999.hdf5')
 
     def compute_gruneisen(self):
         raise Exception("unimplemented")
@@ -109,30 +109,41 @@ class ATP:
         # need fc-relax
         raise Exception("unimplemented")
 
-def plot_tc_data(file_in = 'kappa-m999.hdf5'):
-    f = h5py.File(file_in,'r')
+    def plot_tc_data(self, file_in = 'kappa-m999.hdf5'):
+        f = h5py.File(file_in,'r')
 
-    kappa_tot = np.mean(f['kappa_TOT_RTA'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
-    kappa_P = np.mean(f['kappa_P_RTA'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
-    kappa_C = np.mean(f['kappa_C'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
-    temperatures = np.array(f['temperature'][:])
+        kappa_tot = np.mean(f['kappa_TOT_RTA'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
+        kappa_P = np.mean(f['kappa_P_RTA'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
+        kappa_C = np.mean(f['kappa_C'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
+        temperatures = np.array(f['temperature'][:])
 
 
-    labels = ['$\\kappa_{tot}$', '$\\Gamma_{rel}=0.5$', '$\\Gamma_{rel}=2$', '$\\kappa_P$', '$\\kappa_C$']
+        labels = ['$\\kappa_{tot}$', '$\\Gamma_{rel}=0.5$', '$\\Gamma_{rel}=2$', '$\\kappa_P$', '$\\kappa_C$']
 
-    fig, ax = plt.subplots()
+        fig, ax = plt.subplots()
 
-    #ax.fill_between(temperatures, k_half, k_double, color='lightgray')
-    ax.plot(temperatures, kappa_P, color='#FAA43A', label = labels[3], linewidth=2)
-    ax.plot(temperatures, kappa_C, color='#60BD68', label = labels[4], linewidth=2)
-    ax.plot(temperatures, kappa_tot, color='black', label = labels[0], linewidth=3)
+        #ax.fill_between(temperatures, k_half, k_double, color='lightgray')
+        ax.plot(temperatures, kappa_P, color='#FAA43A', label = labels[3], linewidth=2)
+        ax.plot(temperatures, kappa_C, color='#60BD68', label = labels[4], linewidth=2)
+        ax.plot(temperatures, kappa_tot, color='black', label = labels[0], linewidth=3)
 
-    #plt.ylim(0, 2)
-    #plt.xlim(60, 440)
-    plt.legend(loc=(0.79, 0.25), frameon=False, fontsize=14)
-    plt.tick_params(direction='in')
-    plt.xlabel('$T$ (K)', fontsize=15)
-    plt.ylabel('$\\kappa(T)$ $\\mathrm{(W m^{-1} K^{-1})}$', fontsize=15)
-    ax.tick_params(axis='both', which='major', labelsize=15)
-    #plt.yticks(np.linspace(0, 2, 5))
-    plt.savefig("conductivity_plot.png", dpi=600, bbox_inches='tight')
+        #plt.ylim(0, 2)
+        #plt.xlim(60, 440)
+        plt.legend(loc='best', frameon=False, fontsize=14)
+        plt.tick_params(direction='in')
+        plt.xlabel('$T$ (K)', fontsize=15)
+        plt.ylabel('$\\kappa(T)$ $\\mathrm{(W m^{-1} K^{-1})}$', fontsize=15)
+        ax.tick_params(axis='both', which='major', labelsize=15)
+        #plt.yticks(np.linspace(0, 2, 5))
+        plt.savefig("conductivity_plot.png", dpi=600, bbox_inches='tight')
+        
+        ### plot linewidths
+        plt.clf()
+        n = temperatures.size
+        T_chosen = temperatures[n//2]
+        gammas = f['gamma'][n//2, :, :].flatten()
+        frequencies = f['frequency'][:].flatten()
+        plt.scatter(frequencies, gammas, marker='+')
+        plt.xlabel("frequency")
+        plt.ylabel("anharmonic linewidth")
+        plt.savefig(f"gammaT={T_chosen}K.png", dpi=400)
