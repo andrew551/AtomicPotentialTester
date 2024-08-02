@@ -18,7 +18,7 @@ Installation:
 
 Method A: quick install:
 
-step 1. activate your virtual enviroment
+step 1. activate your virtual enviroment (there can be problems if you skip this step)
 step 2. python3 -m pip install git+https://andrew551/AtomicPotentialTester
 
 Method B: install in development mode:

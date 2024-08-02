@@ -203,6 +203,74 @@ def run_joint_relax(atoms,calculator,fmax=1e-4,fmax_final=None,allow_tilt=False,
 
     
 
+def run_novc_relax(atoms,calculator,fmax=1e-4,fmax_final=None,allow_tilt=False,Optimizer=Optimizer_default,alpha=None,force_symmetry=True):
+    if fmax_final is None:
+        fmax_final=fmax
+
+
+    atoms.calc=calculator
+    
+    
+    print("Initial Energy", atoms.get_potential_energy()," ev")
+    print("Initial Stress",atoms.get_stress()*convert_ase_to_bar," bar")
+
+    print("Initial symmetry at precision 1e-6")
+    sym_before_5=check_symmetry(atoms, 1.0e-5, verbose=True)
+    sym_before_3=check_symmetry(atoms, 1.0e-3, verbose=True)
+
+    atoms.set_constraint(FixSymmetry(atoms))
+
+    if Optimizer.__name__ in ["BFGS",'SciPyFminCG']:
+        dyn_atoms_only = Optimizer(atoms,alpha=alpha)
+    else:
+        dyn_atoms_only = Optimizer(atoms)
+    
+
+
+    # Run a optimisation for atomic positions 
+    # with every step rescaling the cell to minimise stress
+    #dyn_total.run(fmax=1e-3,steps=200)
+    
+    dyn_atoms_only.run(fmax=fmax_final,steps=500)
+
+    print("After keeping symmetry VC/FC relax Energy", atoms.get_potential_energy()," ev")
+    print("After keeping symmetry VC/FC relax Stress",atoms.get_stress()*convert_ase_to_bar," bar")
+
+    # We print out the initial symmetry groups at two different precision levels
+    print("After keeping symmetry VC/FC relax symmetry at precision 1e-5")
+    sym_middle_5=check_symmetry(atoms, 1.0e-5, verbose=True)
+
+    if sym_middle_5['number']!=sym_before_5['number']:
+        warnings.warn(f"SYMMETRY IS NOT KEPT DURING FxSymmetry RELAXTION in folder {os.getcwd()}")
+
+    # delete constrainsts and run a optimisation for atomic positions 
+    # with every step rescaling the cell to minimise stress
+    atoms_symmetry=atoms.copy()
+
+    del atoms.constraints
+
+    dyn_atoms_only.run(fmax=fmax_final,steps=200)
+
+    print("Final Energy", atoms.get_potential_energy()," ev")
+    print("Final Stress",atoms.get_stress()*convert_ase_to_bar," bar")
+
+    print("Final symmetry at precision 1e-4")
+    check_symmetry(atoms, 1.0e-4, verbose=True)
+    print("Final symmetry at precision 1e-5")
+    sym_after_5=check_symmetry(atoms, 1.0e-5, verbose=True)
+    
+
+    # compare symmetries
+    
+    if sym_middle_5['number']!=sym_after_5['number'] and force_symmetry:
+        atoms=atoms_symmetry
+        warnings.warn(f"SYMMETRY IS NOT KEPT AFTER DELETING CONSTRAINT, redirecting to structure with symmetry, in folder {os.getcwd()}")
+
+    atoms_write=Atoms(symbols=atoms.symbols,positions=atoms.positions,cell=atoms.cell,pbc=atoms.pbc)
+    write("POSCAR",atoms_write,format='vasp')
+    return atoms
+
+
 
 def run_rvcrelax_ph3(ph3,calculator,fmax_thresholds=fmax_thresholds_default,threshold_min=1e-10,allow_tilt=False,Optimizer=Optimizer_default,alpha=None):
     atoms=phono3py2ase(ph3)
