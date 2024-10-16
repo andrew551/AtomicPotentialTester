@@ -1,6 +1,6 @@
 import os
 
-def calc_tc_hdf5_yaml(T_min,T_max,T_step,initial_string="phono3py_disp.yaml",output_file="tc.out",Q_MESH=[9,9,9],METHOD_thm=True,sigma=0.012,sigma_cutoff=3,path_phono3py=None):
+def calc_tc_hdf5_yaml(T_min,T_max,T_step,initial_string="phono3py_disp.yaml",output_file="tc.out",Q_MESH=[9,9,5],METHOD_thm=True,sigma=0.012,sigma_cutoff=3,path_phono3py=None):
     
     if METHOD_thm :
         method="--thm"
@@ -25,8 +25,8 @@ def calc_tc_hdf5_yaml(T_min,T_max,T_step,initial_string="phono3py_disp.yaml",out
         path_phono3py_folder=path_phono3py+"/scripts/"
     
     path_phono3py_script=path_phono3py_folder+"phono3py "
-    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+output_file
-    os.system('module load apps/python3/3.10.5/gcc-9.3.0 | python3 -m pip list | python3 -V')
+    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+ str(output_file)
+    os.system('module load apps/python3/3.10.5/gcc-14.1.0 | python3 -m pip list | python3 -V')
     print(cmd, flush=True)
     os.system(cmd)
 
@@ -54,7 +54,7 @@ def calc_tc_hdf5_yaml_rta(T_min,T_max,T_step,initial_string="phono3py_disp.yaml"
         path_phono3py_folder=path_phono3py+"/scripts/"
 
     path_phono3py_script=path_phono3py_folder+"phono3py "
-    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+output_file
+    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+ str(output_file)
     print(cmd)
 
     os.system(cmd)
@@ -85,7 +85,7 @@ def calc_tc_params(T_min,T_max,T_step,initial_string="phono3py_params.yaml",outp
         path_phono3py_folder=path_phono3py+"/scripts/"
 
     path_phono3py_script=path_phono3py_folder+"phono3py-load "
-    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+output_file
+    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+ str(output_file)
     print(cmd)
 
     os.system(cmd)
@@ -116,7 +116,7 @@ def calc_tc_params_nac(T_min,T_max,T_step,initial_string="phono3py_params.yaml",
         path_phono3py_folder=path_phono3py+"/scripts/"
 
     path_phono3py_script=path_phono3py_folder+"phono3py-load "
-    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+output_file
+    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+ str(output_file)
     print(cmd)
 
     os.system(cmd)
@@ -146,7 +146,7 @@ def calc_tc_params_nac_rta(T_min,T_max,T_step,initial_string="phono3py_params.ya
         path_phono3py_folder=path_phono3py+"/scripts/"
 
     path_phono3py_script=path_phono3py_folder+"phono3py-load "
-    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+output_file
+    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+ str(output_file)
     print(cmd)
 
     os.system(cmd)
@@ -177,7 +177,7 @@ def calc_tc_disp_hdf5_nac_rta(T_min,T_max,T_step,initial_string="phono3py.yaml",
         path_phono3py_folder=path_phono3py+"/scripts/"
 
     path_phono3py_script=path_phono3py_folder+"phono3py "
-    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+output_file
+    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+ str(output_file)
     print(cmd)
 
     os.system(cmd)
@@ -207,7 +207,7 @@ def calc_tc_disp_hdf5_rta(T_min,T_max,T_step,initial_string="phono3py.yaml",outp
         path_phono3py_folder=path_phono3py+"/scripts/"
 
     path_phono3py_script=path_phono3py_folder+"phono3py "
-    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+output_file
+    cmd=path_phono3py_script+" "+" ".join(settings)+" > "+ str(output_file)
     print(cmd)
 
     os.system(cmd)

@@ -26,7 +26,7 @@ setup(
     author_email='andrew.d.p.smith@gmail.com',
     license='GPL-3.0',
     packages=setuptools.find_packages(),
-    install_requires=['mpi4py>=2.0',
+    install_requires=[
                       'numpy',  
                       'tqdm',                   
                       ],

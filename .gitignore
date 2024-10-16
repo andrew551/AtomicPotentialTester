@@ -1,2 +1,6 @@
 *.pyc
 *.out
+build/*
+*.egg-info
+submit_install
+VENV_PATH

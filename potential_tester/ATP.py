@@ -1,7 +1,7 @@
 import sys
 import os
 from pathlib import Path
-from potential_tester.drivers import julia_ACE_driver 
+from potential_tester.drivers import julia_ACE_driver, deringher_ACE_driver, NEP_driver
 from potential_tester import file_conversion
 from potential_tester import load
 from potential_tester.autoTC import fc_interface, relax, tc_calc
@@ -22,15 +22,17 @@ class ATP:
             'FC2_SC':[4,4,4],
             'FC3_SC':[4,4,4],
             'Q_MESH':[11,11,11],
+            'Q_MESH_TC':[9,9,5],
             'save_graphics':False,
             'save_force_constants':True,
             'show_progress_bar':True,
+            'path_phono3py': "/mnt/userapps/q13camb_apps/python/packages/phono3py-OMP",
         }
         self.update_config_parameters(kwaargs)
         self.initialise_calculator()
         self.atoms = file_conversion.read_reg(self.config['atoms_file'])
         self.ph3 = load.ase2phono3py(self.atoms, self.config['FC2_SC'], self.config['FC3_SC'])
-
+        self.config['workdir'] = Path(self.config['workdir'])
 
 
     def update_config_parameters(self, parameters):
@@ -39,7 +41,13 @@ class ATP:
     def initialise_calculator(self):
         if self.config['potential_type'] == 'ACE_julia':
             self.calculator = julia_ACE_driver.setup_ACE_lammps_calculator_SiO(self.config['potential_path'])
-            
+        elif self.config['potential_type'] == 'ACE_Deringher':
+            self.calculator = deringher_ACE_driver.setup_Deringher_ACE_lammps_calculator_SiO(self.config['potential_path'])
+            print('Dering calc '+str(self.calculator))
+        elif self.config['potential_type'] == 'NEP':
+            self.calculator =  NEP_driver.setup(self.config['potential_path'])
+        elif self.config['potential_type'] == 'custom':
+            self.calculator = self.config['calc_fxn']()
         else:
             raise Exception("unimplemented")
 
@@ -54,10 +62,10 @@ class ATP:
 
     # compute fc2; save data
     def compute_force_constants(self):
-        fc_interface.run_forces(self.ph3,self.calculator, cutoff_pair_distance=None,disp_filename="phono3py_disp.yaml")
+        fc_interface.run_forces(self.ph3,self.calculator, cutoff_pair_distance=None,disp_filename=str(self.config['workdir'] / "phono3py_disp.yaml"))
         fc_interface.write_ph3_fc2_hdf5(self.ph3)
         fc_interface.write_ph3_fc3_hdf5(self.ph3)
-        pickle_filename="forces.pckl"
+        pickle_filename=str(self.config['workdir'] / "forces.pckl")
         fc_interface.save_ph3_pickle(self.ph3, pickle_filename)
     
     # load ph3 fc2/fc3 if exists
@@ -93,7 +101,7 @@ class ATP:
         plt.savefig(Path(self.config['workdir']) / 'phonons.png')
 
     def compute_tc(self, T_min=80, T_max=640, T_step=80):
-        tc_calc.calc_tc_hdf5_yaml(T_min,T_max,T_step,initial_string="phono3py_disp.yaml",output_file="tc.out",Q_MESH=[9,9,9],METHOD_thm=True,sigma=0.012,sigma_cutoff=3,path_phono3py="/mnt/userapps/q13camb_apps/python/packages/phono3py-OMP")
+        tc_calc.calc_tc_hdf5_yaml(T_min,T_max,T_step,initial_string=str(self.config['workdir'] / "phono3py_disp.yaml"),output_file=self.config['workdir'] / "tc.out",Q_MESH=self.config['Q_MESH_TC'],METHOD_thm=False,sigma=0.012,sigma_cutoff=3,path_phono3py=self.config['path_phono3py'])
         # plot tc
         self.plot_tc_data(file_in=Path(self.config['workdir']) / 'kappa-m999.hdf5')
 
@@ -102,16 +110,18 @@ class ATP:
     
     def as_phonopy(self):
         # return phonopy version of self
-        phonon = phonopy.load(supercell_matrix=self.config['FC2_SC'], unitcell_filename='POSCAR_relaxed', force_constants_filename='fc2.hdf5')
+        phonon = phonopy.load(supercell_matrix=self.config['FC2_SC'], unitcell_filename=self.config['workdir'] / 'POSCAR_relaxed', force_constants_filename='fc2.hdf5')
         return phonon
         
     def compute_bulk_modulus(self):
         # need fc-relax
         raise Exception("unimplemented")
+        #os.system('/mnt/userapps/q13camb_apps/python/packages/phonopy/scripts/phonopy-qha -p e-v.dat phono3py.yaml.yaml-{-{5..1},{0..5} > qha.out')
 
-    def plot_tc_data(self, file_in = 'kappa-m999.hdf5'):
-        f = h5py.File(file_in,'r')
-
+    def plot_tc_data(self, file_in='kappa-m999.hdf5'):
+        vvv = ''.join(map(str, self.config['Q_MESH_TC']))
+        file_in = f'kappa-m{vvv}-s0.012-sd3.hdf5'
+        f = h5py.File(self.config['workdir'] / file_in,'r')
         kappa_tot = np.mean(f['kappa_TOT_RTA'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
         kappa_P = np.mean(f['kappa_P_RTA'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
         kappa_C = np.mean(f['kappa_C'][:, :3], axis=1) # (kappa_xx + kappa_yy + kappa_zz) / 3
@@ -135,7 +145,7 @@ class ATP:
         plt.ylabel('$\\kappa(T)$ $\\mathrm{(W m^{-1} K^{-1})}$', fontsize=15)
         ax.tick_params(axis='both', which='major', labelsize=15)
         #plt.yticks(np.linspace(0, 2, 5))
-        plt.savefig("conductivity_plot.png", dpi=600, bbox_inches='tight')
+        plt.savefig(self.config['workdir'] / "conductivity_plot.png", dpi=600, bbox_inches='tight')
         
         ### plot linewidths
         plt.clf()
@@ -146,4 +156,4 @@ class ATP:
         plt.scatter(frequencies, gammas, marker='+')
         plt.xlabel("frequency")
         plt.ylabel("anharmonic linewidth")
-        plt.savefig(f"gammaT={T_chosen}K.png", dpi=400)
+        plt.savefig(self.config['workdir'] / f"gammaT={T_chosen}K.png", dpi=400)

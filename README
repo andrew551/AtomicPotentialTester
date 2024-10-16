@@ -69,3 +69,64 @@ atp.compute_tc(80, 640, 80) # compute thermal conductivity from 80K to 640K in s
 
 ######
 
+example 2
+
+######
+
+import potential_tester
+
+from ase.calculators.lammpslib import LAMMPSlib
+from functools import partial
+
+
+def get_ase_calculator(path_ACE_potential):
+
+    lammps_cmds = ['pair_style      hybrid/overlay pace table linear 6000',
+        f'pair_coeff      * * pace {path_ACE_potential}.yace O Si',
+        f'pair_coeff      1 1 table {path_ACE_potential}_pairpot.table O_O',
+        f'pair_coeff      1 2 table {path_ACE_potential}_pairpot.table O_Si',
+        f'pair_coeff      2 2 table {path_ACE_potential}_pairpot.table Si_Si' 
+    ]
+    
+    lammps_header=[ 'units metal',
+                    'boundary p p p',
+                    'box tilt large',
+                    'atom_style atomic',
+                    'atom_modify map array sort 0 0'
+        ]
+
+    atoms_dict={'O':1,'Si':2}
+
+    lammps_log_file=None#'lammps_out.log'
+
+
+    #lammps calculator
+    calculator=LAMMPSlib(lmpcmds=lammps_cmds,
+                        log_file=lammps_log_file,
+                        lammps_header=lammps_header, 
+                        atom_types=atoms_dict,
+                        keep_alive=True)
+
+    return calculator
+
+
+config = {
+    'Q_MESH':[11, 11, 11],
+    'FC2_SC':[6, 6, 5],
+    'FC3_SC':[3, 3 ,2],
+    'path_phono3py': "/mnt/userapps/q13camb_apps/python/packages/phono3py-OMP",
+    'potential_type': 'custom',
+    'calc_fxn': partial(get_ase_calculator, '/mnt/scratch2/q13camb_scratch/adps2/summer_project/ace_fitting_julia/models/SiO2-3-12REF_REP0.01'),
+}
+
+atp = potential_tester.ATP(**config)
+
+load_force_constants = False
+if load_force_constants:
+    atp.load_ph3()
+else:
+    atp.run_relax()
+    atp.compute_force_constants()
+atp.compute_phonons()
+atp.compute_specific_heat()
+atp.compute_tc(80, 640, 80) # compute thermal conductivity from 80K to 640K in steps of 80K
