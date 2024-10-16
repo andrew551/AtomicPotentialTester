@@ -1,4 +1,4 @@
-atomic potential tester by Andrew Smith
+Atomic Potential Tester by Andrew Smith, with AutoTC code from Balasz Pota
 
 Pre-requisites (with non-trivial install)
     lammps >= 2034.8.2 -- with ACE support
